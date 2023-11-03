@@ -25,7 +25,8 @@ import {
   IconDots,
   IconPlus,
   IconSearch,
-  IconListDetails
+  IconListDetails,
+  IconPlayerPause
 } from '@tabler/icons-react';
 
 import { timezones } from '../utils/timezones';
@@ -45,123 +46,130 @@ export function IndexPage() {
       </Group>
 
       <Table.ScrollContainer mt="md" minWidth={1600} mah="80vh">
-        <Table highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Job name</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Last execution status</Table.Th>
-              <Table.Th>Command</Table.Th>
-              <Table.Th>Work directory</Table.Th>
-              <Table.Th>Frequency</Table.Th>
-              <Table.Th>Timezone</Table.Th>
-              <Table.Th>Auto start</Table.Th>
-              <Table.Th>Next execution date</Table.Th>
-              <Table.Th>Actions</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-
-          <Table.Tbody>
-            {[
-              {
-                name: 'Backup database',
-                status: 'Running', // Paused, Active
-                command: 'backup.sh',
-                workDirectory: '/home/user/backups',
-                frequency: '* 10 * * * *',
-                timezone: 'America/New_York',
-                autoStart: true,
-                lastExecutionStatus: 'Success',
-                nextRun: new Date().toLocaleString()
-              },
-              {
-                name: 'Send email',
-                status: 'Paused', // Paused, Active
-                command: 'send-email.sh',
-                workDirectory: '/home/user/emails',
-                frequency: '* * * * * *',
-                timezone: 'America/New_York',
-                autoStart: false,
-                lastExecutionStatus: 'Failed',
-                nextRun: new Date().toLocaleString()
-              },
-              {
-                name: 'Generate report',
-                status: 'Active', // Paused, Active
-                command: 'generate-report.sh',
-                workDirectory: null,
-                frequency: '* * * * * *',
-                timezone: 'America/New_York',
-                autoStart: true,
-                lastExecutionStatus: 'Unknown',
-                nextRun: new Date().toLocaleString()
-              }
-            ].map((job) => (
-              <Table.Tr key={job.name}>
-                <Table.Td>{job.name}</Table.Td>
-                <Table.Td>
-                  <Badge
-                    color={
-                      job.status === 'Paused' ? 'gray' : job.status === 'Active' ? 'blue' : 'green'
-                    }
-                  >
-                    {job.status}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Badge
-                    color={
-                      job.lastExecutionStatus === 'Success'
-                        ? 'blue'
-                        : job.lastExecutionStatus === 'Failed'
-                        ? 'red'
-                        : 'gray'
-                    }
-                  >
-                    {job.lastExecutionStatus}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <InlineCodeHighlight language="bash" code={job.command} />
-                </Table.Td>
-                <Table.Td>
-                  <InlineCodeHighlight language="txt" code={job?.workDirectory || 'Not set'} />
-                </Table.Td>
-                <Table.Td>
-                  <InlineCodeHighlight language="txt" title="Every second" code={job.frequency} />
-                </Table.Td>
-                <Table.Td>
-                  <InlineCodeHighlight language="txt" code={job.timezone} />
-                </Table.Td>
-                <Table.Td>
-                  <Checkbox checked={job.autoStart} readOnly />
-                </Table.Td>
-                <Table.Td>{job.nextRun}</Table.Td>
-                <Table.Td>
-                  <Menu width={200} withArrow shadow="md" position="bottom-end">
-                    <Menu.Target>
-                      <ActionIcon variant="light">
-                        <IconDots />
-                      </ActionIcon>
-                    </Menu.Target>
-
-                    <Menu.Dropdown>
-                      <Menu.Item leftSection={<IconPlayerPlay size={18} />}>Run</Menu.Item>
-                      <Menu.Item leftSection={<IconPlayerStop size={18} />}>Pause</Menu.Item>
-                      <Menu.Item leftSection={<IconListDetails size={18} />}>
-                        View details
-                      </Menu.Item>
-                      <Menu.Item leftSection={<IconEdit size={18} />}>Edit</Menu.Item>
-                      <Menu.Item leftSection={<IconTrash size={18} />} color="red">
-                        Delete
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
-                </Table.Td>
+        <Box mah="75vh">
+          <Table highlightOnHover>
+            <Table.Thead pos="sticky" top={0} bg="dark" style={{ zIndex: 1 }}>
+              <Table.Tr>
+                <Table.Th>Job name</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Last execution status</Table.Th>
+                <Table.Th>Command</Table.Th>
+                <Table.Th>Work directory</Table.Th>
+                <Table.Th>Frequency</Table.Th>
+                <Table.Th>Timezone</Table.Th>
+                <Table.Th>Auto start</Table.Th>
+                <Table.Th>Next execution date</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+
+            <Table.Tbody>
+              {[
+                {
+                  name: 'Backup database',
+                  status: 'Running', // Paused, Active
+                  command: 'backup.sh',
+                  workDirectory: '/home/user/backups',
+                  frequency: '* 10 * * * *',
+                  timezone: 'America/New_York',
+                  autoStart: true,
+                  lastExecutionStatus: 'Success',
+                  nextRun: new Date().toLocaleString()
+                },
+                {
+                  name: 'Send email',
+                  status: 'Paused', // Paused, Active
+                  command: 'send-email.sh',
+                  workDirectory: '/home/user/emails',
+                  frequency: '* * * * * *',
+                  timezone: 'America/New_York',
+                  autoStart: false,
+                  lastExecutionStatus: 'Failed',
+                  nextRun: new Date().toLocaleString()
+                },
+                {
+                  name: 'Generate report',
+                  status: 'Active', // Paused, Active
+                  command: 'generate-report.sh',
+                  workDirectory: null,
+                  frequency: '* * * * * *',
+                  timezone: 'America/New_York',
+                  autoStart: true,
+                  lastExecutionStatus: 'Unknown',
+                  nextRun: new Date().toLocaleString()
+                }
+              ].map((job) => (
+                <Table.Tr key={job.name}>
+                  <Table.Td>{job.name}</Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={
+                        job.status === 'Paused'
+                          ? 'gray'
+                          : job.status === 'Active'
+                          ? 'blue'
+                          : 'green'
+                      }
+                    >
+                      {job.status}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={
+                        job.lastExecutionStatus === 'Success'
+                          ? 'blue'
+                          : job.lastExecutionStatus === 'Failed'
+                          ? 'red'
+                          : 'gray'
+                      }
+                    >
+                      {job.lastExecutionStatus}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <InlineCodeHighlight language="bash" code={job.command} />
+                  </Table.Td>
+                  <Table.Td>
+                    <InlineCodeHighlight language="txt" code={job?.workDirectory || 'Not set'} />
+                  </Table.Td>
+                  <Table.Td>
+                    <InlineCodeHighlight language="txt" title="Every second" code={job.frequency} />
+                  </Table.Td>
+                  <Table.Td>
+                    <InlineCodeHighlight language="txt" code={job.timezone} />
+                  </Table.Td>
+                  <Table.Td>
+                    <Checkbox checked={job.autoStart} readOnly />
+                  </Table.Td>
+                  <Table.Td>{job.nextRun}</Table.Td>
+                  <Table.Td>
+                    <Menu width={200} withArrow shadow="md" position="bottom-end">
+                      <Menu.Target>
+                        <ActionIcon variant="light">
+                          <IconDots />
+                        </ActionIcon>
+                      </Menu.Target>
+
+                      <Menu.Dropdown>
+                        <Menu.Item leftSection={<IconPlayerPlay size={18} />}>Run</Menu.Item>
+                        <Menu.Item leftSection={<IconPlayerPause size={18} />}>Pause</Menu.Item>
+                        <Menu.Item leftSection={<IconPlayerStop size={18} />}>Stop</Menu.Item>
+                        <Menu.Item leftSection={<IconListDetails size={18} />}>
+                          View details
+                        </Menu.Item>
+                        <Menu.Item leftSection={<IconEdit size={18} />}>Edit</Menu.Item>
+                        <Menu.Item leftSection={<IconTrash size={18} />} color="red">
+                          Delete
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Box>
       </Table.ScrollContainer>
 
       <CreateJobDialog opened={createDialogOpened} modalHandler={createDialogHandler} />
