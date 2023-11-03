@@ -13,7 +13,8 @@ import {
   Table,
   TextInput,
   Textarea,
-  Title
+  Title,
+  Tooltip
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -26,10 +27,14 @@ import {
   IconPlus,
   IconSearch,
   IconListDetails,
-  IconPlayerPause
+  IconPlayerPause,
+  IconHelp
 } from '@tabler/icons-react';
+import { isNotEmpty, useForm } from '@mantine/form';
+import { Cron } from 'croner';
 
 import { timezones } from '../utils/timezones';
+import { useCronHelpMessage } from '../hooks/cron';
 
 export function IndexPage() {
   const [createDialogOpened, createDialogHandler] = useDisclosure(false);
@@ -178,6 +183,37 @@ export function IndexPage() {
 }
 
 function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } = {}) {
+  const form = useForm({
+    initialValues: {
+      name: '',
+      command: '',
+      workDirectory: null,
+      frequency: '',
+      timezone: null,
+      autoStart: false
+    },
+
+    validate: {
+      name: isNotEmpty('Job name is required'),
+      command: isNotEmpty('Command is required'),
+      frequency: (value) => {
+        try {
+          Cron(value);
+          return null;
+        } catch (error) {
+          return error.message;
+        }
+      }
+    }
+  });
+  const frequencyHelpMessage = useCronHelpMessage(form.values.frequency);
+
+  async function handleSubmit(event) {
+    form.onSubmit((values) => {
+      console.log(values);
+    })(event);
+  }
+
   return (
     <Modal
       title="Create Cron Job"
@@ -191,27 +227,66 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
       opened={opened}
       onClose={modalHandler.close}
     >
-      <Stack component="form" gap="sm" onSubmit={(e) => e.preventDefault()}>
-        <TextInput label="Job name" placeholder="Ex.: Backup database" required />
-        <Textarea label="Command" placeholder="Ex.: backup.sh" required minRows={1} autosize />
+      <Stack component="form" gap="sm" onSubmit={handleSubmit}>
+        <TextInput
+          label="Job name"
+          placeholder="Ex.: Backup database"
+          withAsterisk
+          {...form.getInputProps('name')}
+        />
+
+        <Textarea
+          label="Command"
+          placeholder="Ex.: backup.sh"
+          withAsterisk
+          minRows={1}
+          autosize
+          {...form.getInputProps('command')}
+        />
+
         <TextInput
           label="Work directory"
           placeholder="Ex.: /home/user/backups"
           rightSection={
-            <ActionIcon variant="transparent">
+            <ActionIcon
+              variant="transparent"
+              onClick={async () => {
+                const folderPath = await window.api.dialog.getFolderPath();
+
+                if (folderPath) {
+                  form.setFieldValue('workDirectory', folderPath);
+                }
+              }}
+            >
               <IconFolder />
             </ActionIcon>
           }
+          {...form.getInputProps('workDirectory')}
         />
-        <TextInput label="Frequency" placeholder="Ex.: * 10 * * * *" required />
+
+        <TextInput
+          label="Frequency"
+          placeholder="Ex.: * * * * * *; @hourly; @daily; @weekly; @monthly; @yearly"
+          withAsterisk
+          rightSection={
+            <Tooltip label={frequencyHelpMessage} multiline maw={400} position="top-end" withArrow>
+              <IconHelp />
+            </Tooltip>
+          }
+          {...form.getInputProps('frequency')}
+        />
+
         <Select
           label="Timezone"
           placeholder="Ex.: America/New_York"
           searchable
-          unselectable
+          clearable
           data={timezones}
+          {...form.getInputProps('timezone')}
         />
-        <Checkbox label="Auto start" />
+
+        <Checkbox label="Auto start" {...form.getInputProps('autoStart')} />
+
         <Button type="submit" fullWidth>
           Create job
         </Button>

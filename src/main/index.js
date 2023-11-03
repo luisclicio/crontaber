@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, Menu, Tray, nativeImage } from 'electron';
+import { app, shell, BrowserWindow, Menu, Tray, nativeImage, ipcMain, dialog } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 
@@ -122,3 +122,9 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+ipcMain.handle('dialog:get-folder-path', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'showHiddenFiles']
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
