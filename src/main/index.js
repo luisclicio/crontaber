@@ -1,6 +1,10 @@
 import { app, shell, BrowserWindow, Menu, Tray, nativeImage, ipcMain, dialog } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
+import { Cron } from 'croner';
+
+import { jobsDb } from './services/db';
+import { executor } from './utils/process';
 
 import icon from '../../resources/icon.png?asset';
 
@@ -127,4 +131,76 @@ ipcMain.handle('dialog:get-folder-path', async () => {
     properties: ['openDirectory', 'showHiddenFiles']
   });
   return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle(
+  'job:create',
+  async (event, { name, command, workDirectory, frequency, timezone, autoStart }) => {
+    try {
+      const job = await jobsDb.createJob({
+        name,
+        command,
+        workDirectory,
+        frequency,
+        timezone,
+        autoStart
+      });
+
+      console.log(job);
+
+      if (autoStart) {
+        Cron(frequency, { name: job.id, timezone: timezone ? timezone : undefined }, async () => {
+          const startedAt = new Date().getTime();
+          const result = await executor(command, {
+            cwd: workDirectory ? workDirectory : undefined
+          });
+
+          await jobsDb.createExecution(job.id, {
+            ...result,
+            startedAt,
+            finishedAt: new Date().getTime()
+          });
+        });
+      }
+
+      return {
+        failed: false,
+        message: 'Job created successfully'
+      };
+    } catch (error) {
+      console.error(error);
+      return {
+        failed: true,
+        message: error.message
+      };
+    }
+  }
+);
+
+ipcMain.handle('job:delete', async (event, arg) => {
+  console.log(arg);
+});
+
+ipcMain.handle('job:edit', async (event, arg) => {
+  console.log(arg);
+});
+
+ipcMain.handle('job:get', async (event, arg) => {
+  console.log(arg);
+});
+
+ipcMain.handle('job:list', async (event, arg) => {
+  console.log(arg);
+});
+
+ipcMain.handle('job:run', async (event, arg) => {
+  console.log(arg);
+});
+
+ipcMain.handle('job:pause', async (event, arg) => {
+  console.log(arg);
+});
+
+ipcMain.handle('job:stop', async (event, arg) => {
+  console.log(arg);
 });

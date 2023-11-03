@@ -209,8 +209,15 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
   const frequencyHelpMessage = useCronHelpMessage(form.values.frequency);
 
   async function handleSubmit(event) {
-    form.onSubmit((values) => {
-      console.log(values);
+    form.onSubmit(async (values) => {
+      const result = await window.api.jobs.create(values);
+
+      if (result.failed) {
+        console.error(result.error);
+      } else {
+        modalHandler.close();
+        form.reset();
+      }
     })(event);
   }
 

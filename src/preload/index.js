@@ -3,6 +3,19 @@ import { electronAPI } from '@electron-toolkit/preload';
 
 // Custom APIs for renderer
 const api = {
+  jobs: {
+    async create({ name, command, workDirectory, frequency, timezone, autoStart }) {
+      return await ipcRenderer.invoke('job:create', {
+        name,
+        command,
+        workDirectory,
+        frequency,
+        timezone,
+        autoStart
+      });
+    }
+  },
+
   dialog: {
     async getFolderPath() {
       return await ipcRenderer.invoke('dialog:get-folder-path');
