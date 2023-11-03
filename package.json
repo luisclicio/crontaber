@@ -25,6 +25,7 @@
     "@mantine/hooks": "^7.1.7",
     "@mantine/modals": "^7.1.7",
     "@mantine/notifications": "^7.1.7",
+    "@tabler/icons-react": "^2.40.0",
     "croner": "^7.0.4",
     "cronstrue": "^2.41.0",
     "execa": "^8.0.1",

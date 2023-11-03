@@ -1,6 +1,6 @@
 import '@mantine/core/styles.css';
 
-import { MantineProvider } from '@mantine/core';
+import { AppShell, MantineProvider } from '@mantine/core';
 import { HashRouter, Routes, Route, Outlet } from 'react-router-dom';
 
 import { IndexPage } from './pages/Index';
@@ -8,9 +8,16 @@ import { IndexPage } from './pages/Index';
 export function App() {
   return (
     <HashRouter>
-      <MantineProvider>
+      <MantineProvider defaultColorScheme="dark">
         <Routes>
-          <Route path="/" element={<Outlet />}>
+          <Route
+            path="/"
+            element={
+              <AppShell p="md">
+                <Outlet />
+              </AppShell>
+            }
+          >
             <Route index element={<IndexPage />} />
           </Route>
         </Routes>
