@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron';
+import { app, shell, BrowserWindow, Menu, Tray, nativeImage } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 
@@ -6,7 +6,7 @@ import icon from '../../resources/icon.png?asset';
 
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     minWidth: 900,
     minHeight: 670,
     show: false,
@@ -18,22 +18,67 @@ function createWindow() {
     }
   });
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show();
+  window.on('ready-to-show', () => {
+    window.show();
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  window.on('close', (event) => {
+    if (!app?.isQuiting) {
+      event.preventDefault();
+      window.hide();
+    }
+  });
+
+  window.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
     return { action: 'deny' };
   });
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+    window.loadURL(process.env['ELECTRON_RENDERER_URL']);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+    window.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  return window;
+}
+
+function createTray(mainWindow) {
+  const trayIcon = nativeImage.createFromPath(icon);
+  const tray = new Tray(trayIcon);
+  const trayMenu = Menu.buildFromTemplate([
+    {
+      label: 'Crontaber',
+      icon: trayIcon,
+      click: () => {
+        console.log('Crontaber');
+      }
+    },
+    {
+      type: 'separator'
+    },
+    {
+      label: 'Show',
+      click: () => {
+        mainWindow.show();
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        app.quit();
+      }
+    }
+  ]);
+
+  tray.setToolTip('Crontaber');
+  tray.setContextMenu(trayMenu);
+
+  tray.on('click', () => {
+    mainWindow.show();
+  });
+
+  return tray;
 }
 
 // This method will be called when Electron has finished
@@ -47,18 +92,23 @@ app.whenReady().then(() => {
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window);
+    optimizer.watchWindowShortcuts(window, { zoom: true });
   });
 
-  createWindow();
+  const mainWindow = createWindow();
+  const tray = createTray(mainWindow);
 
-  app.on('activate', function () {
+  app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
+});
+
+app.on('before-quit', () => {
+  app.isQuiting = true;
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
