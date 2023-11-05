@@ -1,4 +1,4 @@
-import { InlineCodeHighlight } from '@mantine/code-highlight';
+import { CodeHighlight, InlineCodeHighlight } from '@mantine/code-highlight';
 import {
   ActionIcon,
   Badge,
@@ -11,6 +11,7 @@ import {
   Select,
   Stack,
   Table,
+  Text,
   TextInput,
   Textarea,
   Title,
@@ -44,7 +45,6 @@ export function IndexPage() {
 
   async function fetchJobs() {
     const result = await window.api.jobs.list();
-    console.log(result);
 
     if (result.failed) {
       console.error(result.error);
@@ -93,6 +93,7 @@ export function IndexPage() {
               {jobs.map((job) => (
                 <Table.Tr key={job.id}>
                   <Table.Td>{job.name}</Table.Td>
+
                   <Table.Td>
                     <Badge
                       color={
@@ -108,6 +109,7 @@ export function IndexPage() {
                       {job.status}
                     </Badge>
                   </Table.Td>
+
                   <Table.Td>
                     <Badge
                       color={
@@ -121,26 +123,52 @@ export function IndexPage() {
                       {job.lastExecutionStatus}
                     </Badge>
                   </Table.Td>
+
                   <Table.Td>
-                    <InlineCodeHighlight language="bash" code={job.command} />
+                    <Tooltip
+                      label={
+                        <CodeHighlight
+                          code={job.command}
+                          language="bash"
+                          multiline
+                          withCopyButton={false}
+                        />
+                      }
+                      withArrow
+                    >
+                      <Box w={300}>
+                        <Text truncate="end" inherit>
+                          <InlineCodeHighlight language="bash" code={job.command} />
+                        </Text>
+                      </Box>
+                    </Tooltip>
                   </Table.Td>
+
                   <Table.Td>
                     <InlineCodeHighlight language="txt" code={job?.workDirectory || 'Not set'} />
                   </Table.Td>
+
                   <Table.Td>
-                    <InlineCodeHighlight
-                      language="txt"
-                      title={getCronHelpMessage(job.frequency)}
-                      code={job.frequency}
-                    />
+                    <Tooltip
+                      label={getCronHelpMessage(job.frequency)}
+                      multiline
+                      maw={400}
+                      withArrow
+                    >
+                      <InlineCodeHighlight language="txt" code={job.frequency} />
+                    </Tooltip>
                   </Table.Td>
+
                   <Table.Td>
                     <InlineCodeHighlight language="txt" code={job?.timezone || 'Not set'} />
                   </Table.Td>
+
                   <Table.Td>
                     <Checkbox checked={job.autoStart} readOnly />
                   </Table.Td>
+
                   <Table.Td>{job?.nextExecution?.toLocaleString() || 'Unknown'}</Table.Td>
+
                   <Table.Td>
                     <Menu width={200} withArrow shadow="md" position="bottom-end">
                       <Menu.Target>

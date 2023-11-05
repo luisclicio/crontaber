@@ -22,6 +22,7 @@ function createWindow() {
 
   window.on('ready-to-show', () => {
     window.show();
+    window.maximize();
   });
 
   window.on('close', (event) => {
