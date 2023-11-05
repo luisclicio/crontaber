@@ -172,7 +172,7 @@ export class JobsService {
         : cronJob.isBusy()
         ? 'running'
         : 'active';
-    const lastExecution = job.executions.length > 0 ? job.executions[0] : null;
+    const lastExecution = job?.executions?.length > 0 ? job.executions.at(-1) : null;
 
     return {
       ...job,
