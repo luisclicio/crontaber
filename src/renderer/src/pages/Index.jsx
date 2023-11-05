@@ -32,8 +32,9 @@ import {
   IconHelp,
 } from '@tabler/icons-react';
 import { isNotEmpty, useForm } from '@mantine/form';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Cron } from 'croner';
+import Fuse from 'fuse.js';
 
 import { timezones } from '../utils/timezones';
 import { getCronHelpMessage } from '../utils/cron';
@@ -41,7 +42,20 @@ import { useCronHelpMessage } from '../hooks/cron';
 
 export function IndexPage() {
   const [jobs, setJobs] = useState([]);
+  const [search, setSearch] = useState('');
   const [createDialogOpened, createDialogHandler] = useDisclosure(false);
+  const filteredJobs = useMemo(() => {
+    if (search.trim() === '') {
+      return jobs;
+    }
+
+    const fuse = new Fuse(jobs, {
+      keys: ['name', 'command'],
+      threshold: 0.3,
+    });
+
+    return fuse.search(search.trim()).map((result) => result.item);
+  }, [jobs, search]);
 
   async function fetchJobs() {
     const result = await window.api.jobs.list();
@@ -65,7 +79,13 @@ export function IndexPage() {
       <Title>Cron Jobs</Title>
 
       <Group justify="space-between" mt="md">
-        <TextInput placeholder="Search jobs by name..." leftSection={<IconSearch />} />
+        <TextInput
+          placeholder="Search jobs by name or command..."
+          leftSection={<IconSearch />}
+          miw={400}
+          value={search}
+          onChange={(event) => setSearch(event.currentTarget.value)}
+        />
         <Button leftSection={<IconPlus />} onClick={createDialogHandler.open}>
           New Job
         </Button>
@@ -90,7 +110,7 @@ export function IndexPage() {
             </Table.Thead>
 
             <Table.Tbody>
-              {jobs.map((job) => (
+              {filteredJobs.map((job) => (
                 <Table.Tr key={job.id}>
                   <Table.Td>{job.name}</Table.Td>
 
