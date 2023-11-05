@@ -63,14 +63,20 @@ export class Database extends PouchDb {
       return null;
     }
 
+    const newValues = Object.fromEntries(
+      Object.entries({
+        name,
+        command,
+        workDirectory,
+        frequency,
+        timezone,
+        autoStart,
+      }).filter(([key, value]) => value !== undefined)
+    );
+
     return await this.put({
       ...job,
-      name: name ? name : job.name,
-      command: command ? command : job.command,
-      workDirectory: workDirectory ? workDirectory : job.workDirectory,
-      frequency: frequency ? frequency : job.frequency,
-      timezone: timezone ? timezone : job.timezone,
-      autoStart: autoStart ? autoStart : job.autoStart,
+      ...newValues,
     });
   }
 
