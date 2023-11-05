@@ -8,6 +8,7 @@ import {
   Group,
   Menu,
   Modal,
+  NumberInput,
   Select,
   Stack,
   Table,
@@ -203,7 +204,7 @@ export function IndexPage() {
                           leftSection={<IconPlayerPlay size={18} />}
                           onClick={async () => await window.api.jobs.run(job.id)}
                         >
-                          Run
+                          Start
                         </Menu.Item>
                         <Menu.Item
                           disabled={job.status === 'stopped' || job.status === 'paused'}
@@ -213,7 +214,7 @@ export function IndexPage() {
                           Pause
                         </Menu.Item>
                         <Menu.Item
-                          disabled={job.status === 'stopped' || job.status === 'paused'}
+                          disabled={job.status === 'stopped'}
                           leftSection={<IconPlayerStop size={18} />}
                           onClick={async () => await window.api.jobs.stop(job.id)}
                         >
@@ -253,6 +254,7 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
       command: '',
       workDirectory: null,
       frequency: '',
+      maxExecutions: Infinity,
       timezone: null,
       autoStart: false,
     },
@@ -269,11 +271,17 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
         }
       },
     },
+
+    transformValues: (values) => ({
+      ...values,
+      maxExecutions: Number(values.maxExecutions) || Infinity,
+    }),
   });
   const frequencyHelpMessage = useCronHelpMessage(form.values.frequency);
 
   async function handleSubmit(event) {
     setSending(true);
+    console.log(form.getTransformedValues());
 
     form.onSubmit(async (values) => {
       const result = await window.api.jobs.create(values);
@@ -284,9 +292,9 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
         modalHandler.close();
         form.reset();
       }
-
-      setSending(false);
     })(event);
+
+    setSending(false);
   }
 
   return (
@@ -320,6 +328,25 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
         />
 
         <TextInput
+          label="Frequency"
+          placeholder="Ex.: * * * * * *; @hourly; @daily; @weekly; @monthly; @yearly"
+          withAsterisk
+          rightSection={
+            <Tooltip label={frequencyHelpMessage} multiline maw={400} position="top-end" withArrow>
+              <IconHelp />
+            </Tooltip>
+          }
+          {...form.getInputProps('frequency')}
+        />
+
+        <NumberInput
+          label="Max executions after start"
+          placeholder="Ex.: 10"
+          min={1}
+          {...form.getInputProps('maxExecutions')}
+        />
+
+        <TextInput
           label="Work directory"
           placeholder="Ex.: /home/user/backups"
           rightSection={
@@ -337,18 +364,6 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
             </ActionIcon>
           }
           {...form.getInputProps('workDirectory')}
-        />
-
-        <TextInput
-          label="Frequency"
-          placeholder="Ex.: * * * * * *; @hourly; @daily; @weekly; @monthly; @yearly"
-          withAsterisk
-          rightSection={
-            <Tooltip label={frequencyHelpMessage} multiline maw={400} position="top-end" withArrow>
-              <IconHelp />
-            </Tooltip>
-          }
-          {...form.getInputProps('frequency')}
         />
 
         <Select

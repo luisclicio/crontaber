@@ -4,12 +4,13 @@ import { electronAPI } from '@electron-toolkit/preload';
 // Custom APIs for renderer
 const api = {
   jobs: {
-    async create({ name, command, workDirectory, frequency, timezone, autoStart }) {
+    async create({ name, command, frequency, maxExecutions, workDirectory, timezone, autoStart }) {
       return await ipcRenderer.invoke('job:create', {
         name,
         command,
-        workDirectory,
         frequency,
+        maxExecutions,
+        workDirectory,
         timezone,
         autoStart,
       });
@@ -27,13 +28,17 @@ const api = {
       return await ipcRenderer.invoke('job:delete', { jobId });
     },
 
-    async update(jobId, { name, command, workDirectory, frequency, timezone, autoStart }) {
+    async update(
+      jobId,
+      { name, command, frequency, maxExecutions, workDirectory, timezone, autoStart }
+    ) {
       return await ipcRenderer.invoke('job:update', {
         jobId,
         name,
         command,
-        workDirectory,
         frequency,
+        maxExecutions,
+        workDirectory,
         timezone,
         autoStart,
       });

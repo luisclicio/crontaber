@@ -32,27 +32,36 @@ export class JobsService {
     });
   }
 
-  setupJob({ id, command, workDirectory, frequency, timezone }) {
-    croner.Cron(frequency, { name: id, timezone: timezone ? timezone : undefined }, async () => {
-      const startedAt = new Date().getTime();
-      const result = await executor(command, {
-        cwd: workDirectory ? workDirectory : undefined,
-      });
+  setupJob({ id, command, frequency, workDirectory, maxExecutions, timezone }) {
+    croner.Cron(
+      frequency,
+      {
+        name: id,
+        maxRuns: maxExecutions ? maxExecutions : undefined,
+        timezone: timezone ? timezone : undefined,
+      },
+      async () => {
+        const startedAt = new Date().getTime();
+        const result = await executor(command, {
+          cwd: workDirectory ? workDirectory : undefined,
+        });
 
-      await this._jobsDb.createJobExecution(id, {
-        ...result,
-        startedAt,
-        finishedAt: new Date().getTime(),
-      });
-    });
+        await this._jobsDb.createJobExecution(id, {
+          ...result,
+          startedAt,
+          finishedAt: new Date().getTime(),
+        });
+      }
+    );
   }
 
-  async createJob({ name, command, workDirectory, frequency, timezone, autoStart }) {
+  async createJob({ name, command, frequency, maxExecutions, workDirectory, timezone, autoStart }) {
     const job = await this._jobsDb.createJob({
       name,
       command,
-      workDirectory,
       frequency,
+      maxExecutions,
+      workDirectory,
       timezone,
       autoStart,
     });
@@ -62,8 +71,9 @@ export class JobsService {
         id: job.id,
         name,
         command,
-        workDirectory,
         frequency,
+        maxExecutions,
+        workDirectory,
         timezone,
         autoStart,
       });
@@ -102,14 +112,18 @@ export class JobsService {
     await this._jobsDb.deleteJob(jobId);
   }
 
-  async updateJob(jobId, { name, command, workDirectory, frequency, timezone, autoStart }) {
+  async updateJob(
+    jobId,
+    { name, command, frequency, maxExecutions, workDirectory, timezone, autoStart }
+  ) {
     this._stopJob(jobId);
 
     await this._jobsDb.updateJob(jobId, {
       name,
       command,
-      workDirectory,
       frequency,
+      maxExecutions,
+      workDirectory,
       timezone,
       autoStart,
     });
@@ -119,8 +133,9 @@ export class JobsService {
         id: jobId,
         name,
         command,
-        workDirectory,
         frequency,
+        maxExecutions,
+        workDirectory,
         timezone,
         autoStart,
       });

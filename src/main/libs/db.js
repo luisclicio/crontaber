@@ -5,13 +5,14 @@ export class Database extends PouchDb {
     super(name);
   }
 
-  async createJob({ name, command, workDirectory, frequency, timezone, autoStart }) {
+  async createJob({ name, command, frequency, maxExecutions, workDirectory, timezone, autoStart }) {
     return await this.put({
       _id: this.generateId(),
       name,
       command,
-      workDirectory,
       frequency,
+      maxExecutions,
+      workDirectory,
       timezone,
       autoStart,
       executions: [],
@@ -56,7 +57,10 @@ export class Database extends PouchDb {
     return job ? await this.remove(job) : null;
   }
 
-  async updateJob(id, { name, command, workDirectory, frequency, timezone, autoStart } = {}) {
+  async updateJob(
+    id,
+    { name, command, frequency, maxExecutions, workDirectory, timezone, autoStart } = {}
+  ) {
     const job = await this.get(id);
 
     if (!job) {
@@ -67,8 +71,9 @@ export class Database extends PouchDb {
       Object.entries({
         name,
         command,
-        workDirectory,
         frequency,
+        maxExecutions,
+        workDirectory,
         timezone,
         autoStart,
       }).filter(([key, value]) => value !== undefined)

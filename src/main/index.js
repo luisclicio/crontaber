@@ -134,13 +134,17 @@ ipcMain.handle('dialog:get-folder-path', async () => {
 
 ipcMain.handle(
   'job:create',
-  async (event, { name, command, workDirectory, frequency, timezone, autoStart }) => {
+  async (
+    event,
+    { name, command, frequency, maxExecutions, workDirectory, timezone, autoStart }
+  ) => {
     try {
       await jobsService.createJob({
         name,
         command,
-        workDirectory,
         frequency,
+        maxExecutions,
+        workDirectory,
         timezone,
         autoStart,
       });
@@ -209,13 +213,17 @@ ipcMain.handle('job:delete', async (event, { jobId }) => {
 
 ipcMain.handle(
   'job:update',
-  async (event, { jobId, name, command, workDirectory, frequency, timezone, autoStart }) => {
+  async (
+    event,
+    { jobId, name, command, frequency, maxExecutions, workDirectory, timezone, autoStart }
+  ) => {
     try {
       await jobsService.updateJob(jobId, {
         name,
         command,
-        workDirectory,
         frequency,
+        maxExecutions,
+        workDirectory,
         timezone,
         autoStart,
       });
