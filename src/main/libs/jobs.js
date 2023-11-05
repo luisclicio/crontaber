@@ -105,7 +105,7 @@ export class JobsService {
   async updateJob(jobId, { name, command, workDirectory, frequency, timezone, autoStart }) {
     this._stopJob(jobId);
 
-    const job = await this._jobsDb.updateJob(jobId, {
+    await this._jobsDb.updateJob(jobId, {
       name,
       command,
       workDirectory,
@@ -115,7 +115,15 @@ export class JobsService {
     });
 
     if (autoStart) {
-      this.createJob(job);
+      this.setupJob({
+        id: jobId,
+        name,
+        command,
+        workDirectory,
+        frequency,
+        timezone,
+        autoStart,
+      });
     }
   }
 
