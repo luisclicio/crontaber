@@ -7,7 +7,7 @@ const nicknames = {
   '@monthly': '0 0 1 * *',
   '@weekly': '0 0 * * 0',
   '@daily': '0 0 * * *',
-  '@hourly': '0 * * * *'
+  '@hourly': '0 * * * *',
 };
 
 export function getCronHelpMessage(expression) {
@@ -20,7 +20,7 @@ export function getCronHelpMessage(expression) {
 
     return cronstrue.toString(expression, {
       use24HourTimeFormat: true,
-      throwExceptionOnParseError: false
+      throwExceptionOnParseError: false,
     });
   } catch (error) {
     return error.message;

@@ -8,13 +8,13 @@ export async function executor(command, options) {
     const result = await execAsync(command, options);
 
     return {
-      failed: false,
-      ...result
+      failed: result.stderr ? true : false,
+      ...result,
     };
   } catch (error) {
     return {
       failed: true,
-      ...error
+      ...error,
     };
   }
 }

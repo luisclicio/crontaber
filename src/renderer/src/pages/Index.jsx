@@ -14,9 +14,9 @@ import {
   TextInput,
   Textarea,
   Title,
-  Tooltip
+  Tooltip,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useInterval } from '@mantine/hooks';
 import {
   IconPlayerStop,
   IconEdit,
@@ -28,16 +28,37 @@ import {
   IconSearch,
   IconListDetails,
   IconPlayerPause,
-  IconHelp
+  IconHelp,
 } from '@tabler/icons-react';
 import { isNotEmpty, useForm } from '@mantine/form';
+import { useEffect, useState } from 'react';
 import { Cron } from 'croner';
 
 import { timezones } from '../utils/timezones';
+import { getCronHelpMessage } from '../utils/cron';
 import { useCronHelpMessage } from '../hooks/cron';
 
 export function IndexPage() {
+  const [jobs, setJobs] = useState([]);
   const [createDialogOpened, createDialogHandler] = useDisclosure(false);
+
+  async function fetchJobs() {
+    const result = await window.api.jobs.list();
+    console.log(result);
+
+    if (result.failed) {
+      console.error(result.error);
+    } else {
+      setJobs(result.data);
+    }
+  }
+
+  const updateInterval = useInterval(fetchJobs, 1000);
+
+  useEffect(() => {
+    fetchJobs();
+    updateInterval.start();
+  }, []);
 
   return (
     <Box>
@@ -69,51 +90,19 @@ export function IndexPage() {
             </Table.Thead>
 
             <Table.Tbody>
-              {[
-                {
-                  name: 'Backup database',
-                  status: 'Running', // Paused, Active
-                  command: 'backup.sh',
-                  workDirectory: '/home/user/backups',
-                  frequency: '* 10 * * * *',
-                  timezone: 'America/New_York',
-                  autoStart: true,
-                  lastExecutionStatus: 'Success',
-                  nextRun: new Date().toLocaleString()
-                },
-                {
-                  name: 'Send email',
-                  status: 'Paused', // Paused, Active
-                  command: 'send-email.sh',
-                  workDirectory: '/home/user/emails',
-                  frequency: '* * * * * *',
-                  timezone: 'America/New_York',
-                  autoStart: false,
-                  lastExecutionStatus: 'Failed',
-                  nextRun: new Date().toLocaleString()
-                },
-                {
-                  name: 'Generate report',
-                  status: 'Active', // Paused, Active
-                  command: 'generate-report.sh',
-                  workDirectory: null,
-                  frequency: '* * * * * *',
-                  timezone: 'America/New_York',
-                  autoStart: true,
-                  lastExecutionStatus: 'Unknown',
-                  nextRun: new Date().toLocaleString()
-                }
-              ].map((job) => (
-                <Table.Tr key={job.name}>
+              {jobs.map((job) => (
+                <Table.Tr key={job.id}>
                   <Table.Td>{job.name}</Table.Td>
                   <Table.Td>
                     <Badge
                       color={
-                        job.status === 'Paused'
-                          ? 'gray'
-                          : job.status === 'Active'
+                        job.status === 'active'
                           ? 'blue'
-                          : 'green'
+                          : job.status === 'running'
+                          ? 'green'
+                          : job.status === 'paused'
+                          ? 'gray'
+                          : 'red'
                       }
                     >
                       {job.status}
@@ -122,9 +111,9 @@ export function IndexPage() {
                   <Table.Td>
                     <Badge
                       color={
-                        job.lastExecutionStatus === 'Success'
+                        job.lastExecutionStatus === 'success'
                           ? 'blue'
-                          : job.lastExecutionStatus === 'Failed'
+                          : job.lastExecutionStatus === 'failed'
                           ? 'red'
                           : 'gray'
                       }
@@ -139,15 +128,19 @@ export function IndexPage() {
                     <InlineCodeHighlight language="txt" code={job?.workDirectory || 'Not set'} />
                   </Table.Td>
                   <Table.Td>
-                    <InlineCodeHighlight language="txt" title="Every second" code={job.frequency} />
+                    <InlineCodeHighlight
+                      language="txt"
+                      title={getCronHelpMessage(job.frequency)}
+                      code={job.frequency}
+                    />
                   </Table.Td>
                   <Table.Td>
-                    <InlineCodeHighlight language="txt" code={job.timezone} />
+                    <InlineCodeHighlight language="txt" code={job?.timezone || 'Not set'} />
                   </Table.Td>
                   <Table.Td>
                     <Checkbox checked={job.autoStart} readOnly />
                   </Table.Td>
-                  <Table.Td>{job.nextRun}</Table.Td>
+                  <Table.Td>{job?.nextExecution?.toLocaleString() || 'Unknown'}</Table.Td>
                   <Table.Td>
                     <Menu width={200} withArrow shadow="md" position="bottom-end">
                       <Menu.Target>
@@ -157,14 +150,36 @@ export function IndexPage() {
                       </Menu.Target>
 
                       <Menu.Dropdown>
-                        <Menu.Item leftSection={<IconPlayerPlay size={18} />}>Run</Menu.Item>
-                        <Menu.Item leftSection={<IconPlayerPause size={18} />}>Pause</Menu.Item>
-                        <Menu.Item leftSection={<IconPlayerStop size={18} />}>Stop</Menu.Item>
+                        <Menu.Item
+                          disabled={job.status === 'running' || job.status === 'active'}
+                          leftSection={<IconPlayerPlay size={18} />}
+                          onClick={async () => await window.api.jobs.run(job.id)}
+                        >
+                          Run
+                        </Menu.Item>
+                        <Menu.Item
+                          disabled={job.status === 'stopped' || job.status === 'paused'}
+                          leftSection={<IconPlayerPause size={18} />}
+                          onClick={async () => await window.api.jobs.pause(job.id)}
+                        >
+                          Pause
+                        </Menu.Item>
+                        <Menu.Item
+                          disabled={job.status === 'stopped' || job.status === 'paused'}
+                          leftSection={<IconPlayerStop size={18} />}
+                          onClick={async () => await window.api.jobs.stop(job.id)}
+                        >
+                          Stop
+                        </Menu.Item>
                         <Menu.Item leftSection={<IconListDetails size={18} />}>
                           View details
                         </Menu.Item>
                         <Menu.Item leftSection={<IconEdit size={18} />}>Edit</Menu.Item>
-                        <Menu.Item leftSection={<IconTrash size={18} />} color="red">
+                        <Menu.Item
+                          leftSection={<IconTrash size={18} />}
+                          color="red"
+                          onClick={async () => await window.api.jobs.delete(job.id)}
+                        >
                           Delete
                         </Menu.Item>
                       </Menu.Dropdown>
@@ -183,6 +198,7 @@ export function IndexPage() {
 }
 
 function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } = {}) {
+  const [sending, setSending] = useState(false);
   const form = useForm({
     initialValues: {
       name: '',
@@ -190,7 +206,7 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
       workDirectory: null,
       frequency: '',
       timezone: null,
-      autoStart: false
+      autoStart: false,
     },
 
     validate: {
@@ -203,12 +219,14 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
         } catch (error) {
           return error.message;
         }
-      }
-    }
+      },
+    },
   });
   const frequencyHelpMessage = useCronHelpMessage(form.values.frequency);
 
   async function handleSubmit(event) {
+    setSending(true);
+
     form.onSubmit(async (values) => {
       const result = await window.api.jobs.create(values);
 
@@ -218,6 +236,8 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
         modalHandler.close();
         form.reset();
       }
+
+      setSending(false);
     })(event);
   }
 
@@ -228,8 +248,8 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
       styles={(theme) => ({
         title: {
           fontSize: theme.fontSizes.lg,
-          fontWeight: 'bold'
-        }
+          fontWeight: 'bold',
+        },
       })}
       opened={opened}
       onClose={modalHandler.close}
@@ -294,7 +314,7 @@ function CreateJobDialog({ opened = false, modalHandler = { close: () => {} } } 
 
         <Checkbox label="Auto start" {...form.getInputProps('autoStart')} />
 
-        <Button type="submit" fullWidth>
+        <Button type="submit" fullWidth disabled={sending}>
           Create job
         </Button>
       </Stack>

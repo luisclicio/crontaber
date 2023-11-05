@@ -11,16 +11,52 @@ const api = {
         workDirectory,
         frequency,
         timezone,
-        autoStart
+        autoStart,
       });
-    }
+    },
+
+    async list() {
+      return await ipcRenderer.invoke('job:list');
+    },
+
+    async get(jobId) {
+      return await ipcRenderer.invoke('job:get', { jobId });
+    },
+
+    async delete(jobId) {
+      return await ipcRenderer.invoke('job:delete', { jobId });
+    },
+
+    async update(jobId, { name, command, workDirectory, frequency, timezone, autoStart }) {
+      return await ipcRenderer.invoke('job:update', {
+        jobId,
+        name,
+        command,
+        workDirectory,
+        frequency,
+        timezone,
+        autoStart,
+      });
+    },
+
+    async run(jobId) {
+      return await ipcRenderer.invoke('job:run', { jobId });
+    },
+
+    async pause(jobId) {
+      return await ipcRenderer.invoke('job:pause', { jobId });
+    },
+
+    async stop(jobId) {
+      return await ipcRenderer.invoke('job:stop', { jobId });
+    },
   },
 
   dialog: {
     async getFolderPath() {
       return await ipcRenderer.invoke('dialog:get-folder-path');
-    }
-  }
+    },
+  },
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

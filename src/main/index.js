@@ -1,10 +1,8 @@
 import { app, shell, BrowserWindow, Menu, Tray, nativeImage, ipcMain, dialog } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
-import { Cron } from 'croner';
 
-import { jobsDb } from './services/db';
-import { executor } from './utils/process';
+import { jobsService } from './services/jobs';
 
 import icon from '../../resources/icon.png?asset';
 
@@ -18,8 +16,8 @@ function createWindow() {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
-    }
+      sandbox: false,
+    },
   });
 
   window.on('ready-to-show', () => {
@@ -56,23 +54,23 @@ function createTray(mainWindow) {
       icon: trayIcon,
       click: () => {
         console.log('Crontaber');
-      }
+      },
     },
     {
-      type: 'separator'
+      type: 'separator',
     },
     {
       label: 'Show',
       click: () => {
         mainWindow.show();
-      }
+      },
     },
     {
       label: 'Quit',
       click: () => {
         app.quit();
-      }
-    }
+      },
+    },
   ]);
 
   tray.setToolTip('Crontaber');
@@ -124,11 +122,11 @@ app.on('window-all-closed', () => {
   }
 });
 
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.
+jobsService.startJobs();
+
 ipcMain.handle('dialog:get-folder-path', async () => {
   const result = await dialog.showOpenDialog({
-    properties: ['openDirectory', 'showHiddenFiles']
+    properties: ['openDirectory', 'showHiddenFiles'],
   });
   return result.canceled ? null : result.filePaths[0];
 });
@@ -137,70 +135,155 @@ ipcMain.handle(
   'job:create',
   async (event, { name, command, workDirectory, frequency, timezone, autoStart }) => {
     try {
-      const job = await jobsDb.createJob({
+      await jobsService.createJob({
         name,
         command,
         workDirectory,
         frequency,
         timezone,
-        autoStart
+        autoStart,
       });
-
-      console.log(job);
-
-      if (autoStart) {
-        Cron(frequency, { name: job.id, timezone: timezone ? timezone : undefined }, async () => {
-          const startedAt = new Date().getTime();
-          const result = await executor(command, {
-            cwd: workDirectory ? workDirectory : undefined
-          });
-
-          await jobsDb.createExecution(job.id, {
-            ...result,
-            startedAt,
-            finishedAt: new Date().getTime()
-          });
-        });
-      }
 
       return {
         failed: false,
-        message: 'Job created successfully'
+        message: 'Job created successfully',
       };
     } catch (error) {
       console.error(error);
+
       return {
         failed: true,
-        message: error.message
+        message: error.message,
       };
     }
   }
 );
 
-ipcMain.handle('job:delete', async (event, arg) => {
-  console.log(arg);
+ipcMain.handle('job:list', async () => {
+  try {
+    const jobsWithStatus = await jobsService.listJobs();
+
+    return {
+      failed: false,
+      message: 'Jobs fetched successfully',
+      data: jobsWithStatus,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      failed: true,
+      message: error.message,
+      data: null,
+    };
+  }
 });
 
-ipcMain.handle('job:edit', async (event, arg) => {
-  console.log(arg);
+ipcMain.handle('job:get', async (event, { jobId }) => {
+  try {
+    return await jobsService.getJob(jobId);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 });
 
-ipcMain.handle('job:get', async (event, arg) => {
-  console.log(arg);
+ipcMain.handle('job:delete', async (event, { jobId }) => {
+  try {
+    await jobsService.deleteJob(jobId);
+
+    return {
+      failed: false,
+      message: 'Job deleted successfully',
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      failed: true,
+      message: error.message,
+    };
+  }
 });
 
-ipcMain.handle('job:list', async (event, arg) => {
-  console.log(arg);
+ipcMain.handle(
+  'job:update',
+  async (event, { jobId, name, command, workDirectory, frequency, timezone, autoStart }) => {
+    try {
+      await jobsService.updateJob(jobId, {
+        name,
+        command,
+        workDirectory,
+        frequency,
+        timezone,
+        autoStart,
+      });
+
+      return {
+        failed: false,
+        message: 'Job updated successfully',
+      };
+    } catch (error) {
+      console.error(error);
+
+      return {
+        failed: true,
+        message: error.message,
+      };
+    }
+  }
+);
+
+ipcMain.handle('job:run', async (event, { jobId }) => {
+  try {
+    await jobsService.runJob(jobId);
+
+    return {
+      failed: false,
+      message: 'Job started successfully',
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      failed: true,
+      message: error.message,
+    };
+  }
 });
 
-ipcMain.handle('job:run', async (event, arg) => {
-  console.log(arg);
+ipcMain.handle('job:pause', async (event, { jobId }) => {
+  try {
+    jobsService.pauseJob(jobId);
+
+    return {
+      failed: false,
+      message: 'Job paused successfully',
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      failed: true,
+      message: error.message,
+    };
+  }
 });
 
-ipcMain.handle('job:pause', async (event, arg) => {
-  console.log(arg);
-});
+ipcMain.handle('job:stop', async (event, { jobId }) => {
+  try {
+    await jobsService.stopJob(jobId);
 
-ipcMain.handle('job:stop', async (event, arg) => {
-  console.log(arg);
+    return {
+      failed: false,
+      message: 'Job stopped successfully',
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      failed: true,
+      message: error.message,
+    };
+  }
 });
