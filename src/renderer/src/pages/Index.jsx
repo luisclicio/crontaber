@@ -1,14 +1,15 @@
-import { CodeHighlight, InlineCodeHighlight } from '@mantine/code-highlight';
+import { CodeHighlight } from '@mantine/code-highlight';
 import {
   ActionIcon,
-  Badge,
   Box,
   Button,
   Checkbox,
+  Code,
   Group,
   Menu,
   Modal,
   NumberInput,
+  Popover,
   Select,
   Stack,
   Table,
@@ -34,14 +35,23 @@ import {
 } from '@tabler/icons-react';
 import { isNotEmpty, useForm } from '@mantine/form';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Cron } from 'croner';
 import Fuse from 'fuse.js';
 
-import { timezones } from '../utils/timezones';
-import { getCronHelpMessage } from '../utils/cron';
 import { useCronHelpMessage } from '../hooks/cron';
+import {
+  JobFrequency,
+  JobLastExecutionStatusBadge,
+  JobNextExecution,
+  JobStatusBadge,
+  JobTimezone,
+  JobWorkDirectory,
+} from '../components/JobDataView';
+import { timezones } from '../utils/timezones';
 
 export function IndexPage() {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [search, setSearch] = useState('');
   const [createDialogOpened, createDialogHandler] = useDisclosure(false);
@@ -73,6 +83,10 @@ export function IndexPage() {
   useEffect(() => {
     fetchJobs();
     updateInterval.start();
+
+    return () => {
+      updateInterval.stop();
+    };
   }, []);
 
   return (
@@ -95,7 +109,7 @@ export function IndexPage() {
       <Table.ScrollContainer mt="md" minWidth={1600} mah="80vh">
         <Box mah="75vh">
           <Table highlightOnHover>
-            <Table.Thead pos="sticky" top={0} bg="dark" style={{ zIndex: 1 }}>
+            <Table.Thead pos="sticky" top={0} style={{ zIndex: 1 }} bg="var(--mantine-color-body)">
               <Table.Tr>
                 <Table.Th>Job name</Table.Th>
                 <Table.Th>Status</Table.Th>
@@ -116,79 +130,51 @@ export function IndexPage() {
                   <Table.Td>{job.name}</Table.Td>
 
                   <Table.Td>
-                    <Badge
-                      color={
-                        job.status === 'active'
-                          ? 'blue'
-                          : job.status === 'running'
-                          ? 'green'
-                          : job.status === 'paused'
-                          ? 'gray'
-                          : 'red'
-                      }
-                    >
-                      {job.status}
-                    </Badge>
+                    <JobStatusBadge status={job.status} />
                   </Table.Td>
 
                   <Table.Td>
-                    <Badge
-                      color={
-                        job.lastExecutionStatus === 'success'
-                          ? 'blue'
-                          : job.lastExecutionStatus === 'failed'
-                          ? 'red'
-                          : 'gray'
-                      }
-                    >
-                      {job.lastExecutionStatus}
-                    </Badge>
+                    <JobLastExecutionStatusBadge lastExecutionStatus={job.lastExecutionStatus} />
                   </Table.Td>
 
                   <Table.Td>
-                    <Tooltip
-                      label={
+                    <Popover withArrow>
+                      <Popover.Target>
+                        <Box maw={300}>
+                          <Text truncate="end" inherit>
+                            <Code fz="sm">{job.command}</Code>
+                          </Text>
+                        </Box>
+                      </Popover.Target>
+                      <Popover.Dropdown maw={600}>
                         <CodeHighlight
                           code={job.command}
                           language="bash"
-                          multiline
-                          withCopyButton={false}
+                          copyLabel="Copy job command"
                         />
-                      }
-                      withArrow
-                    >
-                      <Box w={300}>
-                        <Text truncate="end" inherit>
-                          <InlineCodeHighlight language="bash" code={job.command} />
-                        </Text>
-                      </Box>
-                    </Tooltip>
+                      </Popover.Dropdown>
+                    </Popover>
                   </Table.Td>
 
                   <Table.Td>
-                    <InlineCodeHighlight language="txt" code={job?.workDirectory || 'Not set'} />
+                    <JobWorkDirectory workDirectory={job.workDirectory} />
                   </Table.Td>
 
                   <Table.Td>
-                    <Tooltip
-                      label={getCronHelpMessage(job.frequency)}
-                      multiline
-                      maw={400}
-                      withArrow
-                    >
-                      <InlineCodeHighlight language="txt" code={job.frequency} />
-                    </Tooltip>
+                    <JobFrequency frequency={job.frequency} />
                   </Table.Td>
 
                   <Table.Td>
-                    <InlineCodeHighlight language="txt" code={job?.timezone || 'Not set'} />
+                    <JobTimezone timezone={job.timezone} />
                   </Table.Td>
 
                   <Table.Td>
                     <Checkbox checked={job.autoStart} readOnly />
                   </Table.Td>
 
-                  <Table.Td>{job?.nextExecution?.toLocaleString() || 'Unknown'}</Table.Td>
+                  <Table.Td>
+                    <JobNextExecution nextExecution={job.nextExecution} />
+                  </Table.Td>
 
                   <Table.Td>
                     <Menu width={200} withArrow shadow="md" position="bottom-end">
@@ -220,7 +206,10 @@ export function IndexPage() {
                         >
                           Stop
                         </Menu.Item>
-                        <Menu.Item leftSection={<IconListDetails size={18} />}>
+                        <Menu.Item
+                          leftSection={<IconListDetails size={18} />}
+                          onClick={() => navigate(`/job/${job.id}`)}
+                        >
                           View details
                         </Menu.Item>
                         <Menu.Item leftSection={<IconEdit size={18} />}>Edit</Menu.Item>
